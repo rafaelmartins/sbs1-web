@@ -254,8 +254,9 @@ def run_worker(host, port=30003):
     try:
         conn = SBSConnection(host, port)
         parser = SBSParser()
-        for i in conn.readlines():
-            parser.parse(i)
+        while True:
+            for i in conn.readlines():
+                parser.parse(i)
     except KeyboardInterrupt:
         pass
 
