@@ -6,15 +6,18 @@ import socket
 from datetime import datetime, timedelta
 from time import sleep
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
+app.config.setdefault('TITLE', 'SBS1-WEB')
 app.config.setdefault('SQLALCHEMY_DATABASE_URI', 'sqlite:////tmp/test.db')
 app.config.setdefault('FLIGHT_GAP_HOURS', 2)
+app.config.setdefault('AIRCRAFT_SEEN_GAP_SECONDS', 30)
+app.config.from_envvar('SBS1_WEB_CONFIG', True)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -91,8 +94,8 @@ class FlightPosition(db.Model):
 
     @classmethod
     def get_active_positions(cls):
-        return cls.query.filter(
-            cls.time >= datetime.utcnow() - timedelta(minutes=2)). \
+        delta = timedelta(seconds=app.config['AIRCRAFT_SEEN_GAP_SECONDS'])
+        return cls.query.filter(cls.time >= datetime.utcnow() - delta). \
                 group_by(cls.flight_id).all()
 
     def to_json(self):
@@ -235,8 +238,8 @@ class SBSParser(object):
 
 
 @app.route('/')
-def hello():
-    return 'Hello world'
+def index():
+    return render_template('gmap.html', title=app.config['TITLE'])
 
 
 @app.route('/data.json')
@@ -246,13 +249,7 @@ def data_json():
 
 
 @manager.command
-def create_db():
-    '''Create database.'''
-    db.create_all()
-
-
-@manager.command
-def run_worker(host, port=30003):
+def runworker(host, port=30003):
     '''Run worker.'''
     try:
         conn = SBSConnection(host, port)
