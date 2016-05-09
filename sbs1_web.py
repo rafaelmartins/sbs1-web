@@ -225,9 +225,9 @@ class SBSParser(object):
             if pieces[15]:
                 self._set_seen_prop(icao, 'longitude', float(pieces[15]))
         elif msgtype == 4:
-            self._set_seen_prop(icao, 'speed', int(pieces[12]))
-            self._set_seen_prop(icao, 'track', int(pieces[13]))
-            self._set_seen_prop(icao, 'vertical_rate', int(pieces[16]))
+            self._set_seen_prop(icao, 'speed', int(pieces[12] or 0))
+            self._set_seen_prop(icao, 'track', int(pieces[13] or 0))
+            self._set_seen_prop(icao, 'vertical_rate', int(pieces[16] or 0))
         self._add_to_database(icao)
 
 
