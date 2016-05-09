@@ -96,7 +96,7 @@ class FlightPosition(db.Model):
     def get_active_positions(cls):
         delta = timedelta(seconds=app.config['AIRCRAFT_SEEN_GAP_SECONDS'])
         return cls.query.filter(cls.time >= datetime.utcnow() - delta). \
-                group_by(cls.flight_id, cls.id).all()
+                distinct(cls.flight_id).all()
 
     def to_json(self):
         return {'icao': self.flight.aircraft.icao_str,
