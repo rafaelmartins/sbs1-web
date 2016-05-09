@@ -14,6 +14,7 @@ app = Flask(__name__)
 
 app.config.setdefault('TITLE', 'SBS1-WEB')
 app.config.setdefault('SQLALCHEMY_DATABASE_URI', 'sqlite:////tmp/test.db')
+app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
 app.config.setdefault('FLIGHT_GAP_HOURS', 2)
 app.config.setdefault('AIRCRAFT_SEEN_GAP_SECONDS', 30)
 app.config.from_envvar('SBS1_WEB_CONFIG', True)
@@ -95,7 +96,7 @@ class FlightPosition(db.Model):
     def get_active_positions(cls):
         delta = timedelta(seconds=app.config['AIRCRAFT_SEEN_GAP_SECONDS'])
         return cls.query.filter(cls.time >= datetime.utcnow() - delta). \
-                group_by(cls.flight_id).all()
+                group_by(cls.flight_id, cls.id).all()
 
     def to_json(self):
         return {'icao': self.flight.aircraft.icao_str,
