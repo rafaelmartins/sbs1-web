@@ -7,8 +7,9 @@ from datetime import datetime, timedelta
 from time import sleep
 
 from flask import Flask, jsonify
-from flask.ext.script import Manager
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate, MigrateCommand
+from flask_script import Manager
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
@@ -16,7 +17,9 @@ app.config.setdefault('SQLALCHEMY_DATABASE_URI', 'sqlite:////tmp/test.db')
 app.config.setdefault('FLIGHT_GAP_HOURS', 2)
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 manager = Manager(app)
+manager.add_command('db', MigrateCommand)
 
 
 class Aircraft(db.Model):
