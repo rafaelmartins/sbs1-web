@@ -62,14 +62,15 @@ class Flight(db.Model):
     @classmethod
     def get_by_icao(cls, icao):
         return cls.query.join(cls.aircraft).filter(
-            Aircraft.icao == int(icao, 16)).first()
+            Aircraft.icao == int(icao, 16)).order_by(cls.seen.desc()).first()
 
     def __str__(self):
         return self.name or self.aircraft.icao_str
 
     def __repr__(self):
-        return '<Flight: %s; aircraft=%s>' % (self.name,
-                                              self.aircraft.icao_str)
+        return '<Flight: %s; aircraft=%s; seen=%s>' % (self.name,
+                                                       self.aircraft.icao_str,
+                                                       self.seen)
 
 
 class FlightPosition(db.Model):
@@ -263,6 +264,41 @@ def runworker(host, port=30003):
                     pass  # need to improve logging
     except KeyboardInterrupt:
         pass
+
+
+@manager.command
+def fix_flights():
+    gap = timedelta(hours=app.config['FLIGHT_GAP_HOURS'])
+
+    with db.session.no_autoflush:
+        for aircraft in Aircraft.query.all():
+            if len(aircraft.flights) > 2:
+                flights = Flight.query.filter_by(aircraft=aircraft) \
+                        .order_by(Flight.seen.asc()).all()
+
+                last = None
+                real_flights = []
+
+                for flight in flights:
+                    if last is None or flight.seen > last.seen + gap:
+                        last = flight
+                        real_flights.append(flight)
+                        db.session.add(flight)
+                    else:
+                        for pos in FlightPosition.query \
+                                .filter_by(flight=flight).all():
+                            if last is not None:
+                                pos.flight = last
+                                db.session.add(pos)
+                        db.session.delete(flight)
+
+                    if last is not None and flight.name is not None:
+                        last.name = flight.name
+                        db.session.add(last)
+
+                print real_flights
+
+    db.session.commit()
 
 
 if __name__ == "__main__":
